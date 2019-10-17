@@ -16,6 +16,10 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
+
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -36,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private Button Start_Adv;
     private Button Stop_Adv;
 
+    private boolean BLE_status = FALSE;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
         Start_Adv.setOnClickListener(Start_Adv_Listener);
         Stop_Adv = (Button)findViewById(R.id.stop_adv);
         Stop_Adv.setOnClickListener(Stop_Adv_Listener);
+        mEdit = (EditText)findViewById(R.id.editText);
 
         /** BLE Settings **/
         mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
@@ -63,9 +70,19 @@ public class MainActivity extends AppCompatActivity {
     private final View.OnClickListener Start_Adv_Listener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            //TODO: get value from EditText and pass to advertising
-            startAdvertising();
-            //TODO: check if advertising is on, if on, stop first
+            Log.v(TAG, String.valueOf(mEdit.getText().toString().length()));
+            if (mEdit.getText().toString().length() != 4){// validate the length of UserID
+                Toast.makeText(getApplicationContext(),"Invalid UserID!", Toast.LENGTH_SHORT).show();
+            }else{
+                if (BLE_status == FALSE){
+                    startAdvertising(mEdit.getText().toString().getBytes());
+                    Toast.makeText(getApplicationContext(),"BLE Advertising started!",Toast.LENGTH_SHORT).show();
+                }else{
+                    stopAdvertising();
+                    startAdvertising(mEdit.getText().toString().getBytes());
+                    Toast.makeText(getApplicationContext(),"Restart advertising with new UserID..",Toast.LENGTH_SHORT).show();
+                }
+            }
         }
     };
 
@@ -77,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     /** BLE Advertising **/
-    public void startAdvertising(){
+    public void startAdvertising(byte[] payload){
         mBluetoothLeAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
         if (mBluetoothLeAdvertiser == null) return;
 
@@ -88,13 +105,11 @@ public class MainActivity extends AppCompatActivity {
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH) // ULTRA_LOW, LOW, MEDIUM, HIGH
                 .build();
 
-        //TODO: add service data
-
         AdvertiseData data = new AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
                 .setIncludeTxPowerLevel(false)
                 .addServiceUuid(UserID_UUID)
-//                .addServiceData(data)
+                .addServiceData(UserID_UUID,payload)
                 .build();
 
         mBluetoothLeAdvertiser.startAdvertising(settings, data, mAdvertiseCallback);
@@ -105,17 +120,20 @@ public class MainActivity extends AppCompatActivity {
         if (mBluetoothLeAdvertiser == null) return;
         mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
         Log.i(TAG, "LE Advertise Stopped.");
+        BLE_status = FALSE;
     }
 
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             Log.i(TAG, "LE Advertise Started.");
+            BLE_status = TRUE;
         }
 
         @Override
         public void onStartFailure(int errorCode) {
             Log.w(TAG, "LE Advertise Failed: " + errorCode);
+            BLE_status = FALSE;
         }
     };
 
