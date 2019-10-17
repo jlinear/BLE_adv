@@ -53,7 +53,7 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="false"
                 android:layout_marginTop="40dp"
-                android:text="Start Adv" />
+                android:text="(Re)Start Adv" />
 
 
         </LinearLayout>
